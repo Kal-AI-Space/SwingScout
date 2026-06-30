@@ -204,18 +204,8 @@ export default function SwingScout() {
       const data = await res.json();
 
       // Extract text from Gemini response
-      const text = data?.candidates?.[0]?.content?.parts
-        ?.filter((p) => p.text)
-        ?.map((p) => p.text)
-        ?.join("") || "";
-
-      if (!text) throw new Error("No analysis returned — please try again.");
-
-      const match = text.match(/\{[\s\S]*\}/);
-      if (!match) throw new Error("Could not parse analysis — please try again.");
-
-      const parsed = JSON.parse(match[0]);
-      setResult(parsed);
+      if (!data.parsed) throw new Error("No analysis returned — please try again.");
+const parsed = data.parsed;      setResult(parsed);
     } catch (e) {
       setError(e.message || "Something went wrong. Please try again.");
     } finally {
