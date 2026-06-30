@@ -58,7 +58,7 @@ Based on your research, respond ONLY with a raw valid JSON object — no markdow
 Rules: verdict must be exactly "BUY NOW", "WAIT FOR DIP", or "AVOID". earnings_risk must be exactly "HIGH", "MEDIUM", "LOW", or "NONE". confidence and probability are integers 0-100. Never recommend meme stocks, penny stocks, or crypto-only plays.`;
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
