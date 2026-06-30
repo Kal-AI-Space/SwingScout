@@ -70,8 +70,12 @@ Rules: verdict must be exactly "BUY NOW", "WAIT FOR DIP", or "AVOID". earnings_r
     }
   );
 
-  const data = await response.json();
-  console.log("Gemini response:", JSON.stringify(data).slice(0, 500));
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.status(200).json(data);
+const data = await response.json();
+const raw = data?.candidates?.[0]?.content?.parts?.map(p => p.text).join("") || "";
+const clean = raw.replace(/```json/g, "").replace(/```/g, "").trim();
+const match = clean.match(/\{[\s\S]*\}/);
+const parsed = match ? JSON.parse(match[0]) : null;
+console.log("Parsed:", JSON.stringify(parsed)?.slice(0, 200));
+res.setHeader("Access-Control-Allow-Origin", "*");
+res.status(200).json({ parsed });
 }
