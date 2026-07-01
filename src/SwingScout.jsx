@@ -224,7 +224,7 @@ export default function SwingScout() {
         </div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 8 }}>
           <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#4a8af4", animation: "pulse 2s infinite" }} />
-          <span style={{ fontSize: 10, color: "#4a8af4", letterSpacing: 1, fontWeight: 600 }}>GEMINI 2.5 + GOOGLE SEARCH</span>
+          <span style={{ fontSize: 10, color: "#4a8af4", letterSpacing: 1, fontWeight: 600 }}>GROQ LLAMA 3.3 + FINNHUB LIVE DATA</span>
         </div>
         <div style={{ height: 1, background: "linear-gradient(90deg,transparent,#e8a020,transparent)", margin: "14px auto 0", maxWidth: 400 }} />
       </div>
