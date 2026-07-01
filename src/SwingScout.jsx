@@ -59,7 +59,6 @@ function ResultCard({ d }) {
     <div style={{ animation: "fadeIn 0.4s ease" }}>
       <style>{`@keyframes fadeIn { from { opacity:0; transform:translateY(8px) } to { opacity:1; transform:translateY(0) } }`}</style>
 
-      {/* Verdict Banner */}
       <div style={{ background: vBg(d.verdict), border: `1px solid ${vBorder(d.verdict)}`, borderRadius: 10, padding: "18px 22px", marginBottom: 10, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
         <div>
           <div style={{ fontSize: 10, letterSpacing: "2px", color: "#4a5870", textTransform: "uppercase", marginBottom: 4 }}>Trade Signal — {d.ticker}</div>
@@ -74,7 +73,6 @@ function ResultCard({ d }) {
         </div>
       </div>
 
-      {/* 4 Key Numbers */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 7, marginBottom: 7 }}>
         <Box label="Entry Zone" value={`${fmt(d.entry_low)} – ${fmt(d.entry_high)}`} sub="Buy in this range" valueColor="#e8a020" />
         <Box label="Stop Loss" value={fmt(d.stop_loss)} sub="Hard exit — no debate" valueColor="#ff4555" />
@@ -82,7 +80,6 @@ function ResultCard({ d }) {
         <Box label="Take Profit 2" value={fmt(d.take_profit_2)} sub={`+${pct(d.tp2_gain_pct)} stretch`} valueColor="#00d4a0" />
       </div>
 
-      {/* Stats Row */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 7, marginBottom: 7 }}>
         <div style={{ background: "#0b0f1a", border: "1px solid #1c2438", borderRadius: 8, padding: "11px 13px" }}>
           <div style={{ fontSize: 9, letterSpacing: "1.5px", color: "#4a5870", textTransform: "uppercase", marginBottom: 8 }}>Confidence</div>
@@ -107,14 +104,12 @@ function ResultCard({ d }) {
         </div>
       </div>
 
-      {/* Catalyst */}
       <div style={{ background: "#0b0f1a", border: "1px solid #1c2438", borderLeft: "3px solid #e8a020", borderRadius: 8, padding: "13px 15px", marginBottom: 7 }}>
         <div style={{ fontSize: 9, letterSpacing: "1.5px", color: "#e8a020", textTransform: "uppercase", marginBottom: 7 }}>⚡ Primary Catalyst</div>
         <div style={{ fontSize: 13, color: "#fff", lineHeight: 1.6, fontWeight: 500 }}>{d.primary_catalyst}</div>
         <div style={{ fontSize: 12, color: "#4a5870", marginTop: 6, lineHeight: 1.5 }}>⏱ Timing: {d.timing}</div>
       </div>
 
-      {/* Earnings */}
       <div style={{ background: "#0b0f1a", border: "1px solid #1c2438", borderRadius: 8, padding: "11px 15px", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 7 }}>
         <div>
           <div style={{ fontSize: 9, letterSpacing: "1.5px", color: "#4a5870", textTransform: "uppercase", marginBottom: 4 }}>📅 Next Earnings</div>
@@ -128,7 +123,6 @@ function ResultCard({ d }) {
         </div>
       </div>
 
-      {/* Exit + Risk */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, marginBottom: 7 }}>
         <div style={{ background: "#0b0f1a", border: "1px solid #1c2438", borderRadius: 8, padding: "12px 14px" }}>
           <div style={{ fontSize: 9, letterSpacing: "1.5px", color: "#4a5870", textTransform: "uppercase", marginBottom: 10 }}>🚪 Exit Immediately If</div>
@@ -144,7 +138,6 @@ function ResultCard({ d }) {
         </div>
       </div>
 
-      {/* Analyst Target */}
       <div style={{ background: "#0b0f1a", border: "1px solid #1c2438", borderRadius: 8, padding: "11px 15px", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
         <div>
           <div style={{ fontSize: 9, letterSpacing: "1.5px", color: "#4a5870", textTransform: "uppercase", marginBottom: 3 }}>Wall St. Analyst Consensus Target</div>
@@ -153,7 +146,6 @@ function ResultCard({ d }) {
         <div style={{ fontFamily: "'Courier Prime', monospace", fontSize: 16, fontWeight: 700, color: "#00d4a0" }}>{fmt(d.analyst_target)}</div>
       </div>
 
-      {/* Powered by */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 10 }}>
         <div style={{ fontSize: 10, color: "#2a3448", letterSpacing: 1 }}>POWERED BY</div>
         <div style={{ fontSize: 10, fontWeight: 700, color: "#4a8af4", letterSpacing: 1 }}>GEMINI + GOOGLE SEARCH</div>
@@ -202,10 +194,8 @@ export default function SwingScout() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
       const data = await res.json();
-
-      // Extract text from Gemini response
       if (!data.parsed) throw new Error("No analysis returned — please try again.");
-const parsed = data.parsed;      setResult(parsed);
+      setResult(data.parsed);
     } catch (e) {
       setError(e.message || "Something went wrong. Please try again.");
     } finally {
@@ -225,7 +215,6 @@ const parsed = data.parsed;      setResult(parsed);
         @keyframes pulse { 0%,100% { opacity:1 } 50% { opacity:0.4 } }
       `}</style>
 
-      {/* Header */}
       <div style={{ textAlign: "center", marginBottom: 24, maxWidth: 660, margin: "0 auto 24px" }}>
         <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 44, letterSpacing: 4, color: "#fff", lineHeight: 1, textShadow: "0 0 40px rgba(232,160,32,0.35)" }}>
           SWING SCOUT
@@ -235,13 +224,12 @@ const parsed = data.parsed;      setResult(parsed);
         </div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 8 }}>
           <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#4a8af4", animation: "pulse 2s infinite" }} />
-          <span style={{ fontSize: 10, color: "#4a8af4", letterSpacing: 1, fontWeight: 600 }}>GEMINI + GOOGLE SEARCH</span>
+          <span style={{ fontSize: 10, color: "#4a8af4", letterSpacing: 1, fontWeight: 600 }}>GEMINI 2.5 + GOOGLE SEARCH</span>
         </div>
         <div style={{ height: 1, background: "linear-gradient(90deg,transparent,#e8a020,transparent)", margin: "14px auto 0", maxWidth: 400 }} />
       </div>
 
       <div style={{ maxWidth: 660, margin: "0 auto" }}>
-        {/* Input */}
         <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
           <input
             value={ticker}
@@ -260,7 +248,6 @@ const parsed = data.parsed;      setResult(parsed);
           </button>
         </div>
 
-        {/* Quick picks */}
         <div style={{ fontSize: 11, color: "#4a5870", textAlign: "center", marginBottom: 20 }}>
           Quick:{" "}
           {QUICK.map((q) => (
@@ -270,7 +257,6 @@ const parsed = data.parsed;      setResult(parsed);
           ))}
         </div>
 
-        {/* Loading */}
         {loading && (
           <div style={{ textAlign: "center", padding: "48px 20px" }}>
             <div style={{ width: 44, height: 44, border: "2px solid #1a2030", borderTopColor: "#e8a020", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 18px" }} />
@@ -281,17 +267,14 @@ const parsed = data.parsed;      setResult(parsed);
           </div>
         )}
 
-        {/* Error */}
         {error && !loading && (
           <div style={{ background: "rgba(255,69,85,0.08)", border: "1px solid rgba(255,69,85,0.3)", borderRadius: 8, padding: 16, fontSize: 13, color: "#ff4555", textAlign: "center", lineHeight: 1.6 }}>
             ⚠ {error}
           </div>
         )}
 
-        {/* Result */}
         {result && !loading && <ResultCard d={result} />}
 
-        {/* Footer */}
         {!result && !loading && !error && (
           <div style={{ textAlign: "center", marginTop: 60, fontSize: 11, color: "#1c2438", lineHeight: 1.8 }}>
             Built by <span style={{ color: "#2a3448" }}>Kal Wahid</span> ·{" "}
