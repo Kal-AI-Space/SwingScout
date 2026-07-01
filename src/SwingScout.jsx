@@ -148,7 +148,7 @@ function ResultCard({ d }) {
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 10 }}>
         <div style={{ fontSize: 10, color: "#2a3448", letterSpacing: 1 }}>POWERED BY</div>
-        <div style={{ fontSize: 10, fontWeight: 700, color: "#4a8af4", letterSpacing: 1 }}>GEMINI + GOOGLE SEARCH</div>
+        <div style={{ fontSize: 10, fontWeight: 700, color: "#4a8af4", letterSpacing: 1 }}>GROQ LLAMA 3.3 + FINNHUB LIVE DATA</div>
       </div>
 
       <div style={{ fontSize: 10, color: "#2a3448", textAlign: "center", lineHeight: 1.7, borderTop: "1px solid #1a2030", paddingTop: 10 }}>
