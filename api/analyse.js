@@ -28,7 +28,9 @@ export default async function handler(req, res) {
     const changePercent = quote.dp?.toFixed(2);
     const companyName = profile.name || ticker;
     const industry = profile.finnhubIndustry || "Technology";
-    const marketCap = profile.marketCapitalization ? `$${(profile.marketCapitalization / 1000).toFixed(1)}B` : "Unknown";
+    const marketCap = profile.marketCapitalization
+      ? `$${(profile.marketCapitalization / 1000).toFixed(1)}B`
+      : "Unknown";
 
     if (!currentPrice || currentPrice === 0) {
       return res.status(200).json({ parsed: null, error: "Invalid ticker or market is closed." });
@@ -39,6 +41,13 @@ export default async function handler(req, res) {
       : "No recent news found";
 
     const today = new Date().toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" });
+    const dataDate = new Date().toLocaleDateString("en-AU", { month: "long", year: "numeric" });
+
+    const entryLow = (currentPrice * 0.98).toFixed(2);
+    const entryHigh = (currentPrice * 1.005).toFixed(2);
+    const stopLoss = (currentPrice * 0.935).toFixed(2);
+    const tp1 = (currentPrice * 1.055).toFixed(2);
+    const tp2 = (currentPrice * 1.11).toFixed(2);
 
     const systemPrompt = `You are an elite swing trader analyst for US equities. Your client is a retail swing trader who:
 - Buys quality stocks on confirmed pullbacks, holds 1–4 weeks
@@ -47,13 +56,12 @@ export default async function handler(req, res) {
 - Prefers large-cap AI and technology (Mag 7, semiconductors, AI software)
 - Loses money on meme stocks and FOMO buys — never recommend these
 - Account size ~$5,000–7,000 USD
-- Applies Islamic finance screening — avoids companies with excessive debt (debt/equity > 33%), interest-based revenue, or haram business activities
 
 Strategy: buy quality on confirmed pullbacks with a clear catalyst, defined risk, realistic target.
-You must be specific, opinionated, and sharp. Reference actual news, actual price levels, actual catalysts.
-NEVER use generic placeholder text. NEVER copy example values. ALWAYS calculate real numbers based on the live price provided.`;
+Be specific, opinionated and sharp. Reference actual news and actual price levels in your reasoning.
+Never use generic placeholder text. Every sentence must be specific to this stock right now.`;
 
-    const userPrompt = `Today is ${today}. Analyse ${ticker} for a swing trade opportunity.
+    const userPrompt = `Today is ${today}. Analyse ${ticker} for a swing trade.
 
 LIVE MARKET DATA:
 - Company: ${companyName}
@@ -65,52 +73,40 @@ LIVE MARKET DATA:
 - Previous Close: $${prevClose}
 - Change Today: ${changePercent}%
 
-RECENT NEWS HEADLINES (last 7 days):
+RECENT NEWS (last 7 days):
 ${recentHeadlines}
 
-INSTRUCTIONS:
-1. Assess the technical setup — is this stock in a pullback, at support, breaking out, or at resistance?
-2. Identify the single strongest catalyst from the news above
-3. Calculate precise entry, stop, and target levels based on the REAL current price of $${currentPrice}
-4. Give a REAL confidence score based on how strong the setup is (not a default number)
-5. Give a REAL probability based on market conditions (not a default number)
-6. Give a REAL hold period based on the catalyst timeline
-7. Write specific exit triggers referencing actual price levels
-8. Check halal compliance — flag if debt-heavy or interest-based business
+PRE-CALCULATED LEVELS (use these exact numbers):
+- entry_low: ${entryLow}
+- entry_high: ${entryHigh}
+- stop_loss: ${stopLoss}
+- take_profit_1: ${tp1}
+- take_profit_2: ${tp2}
+- max_loss_pct: ${((currentPrice - parseFloat(stopLoss)) / currentPrice * 100).toFixed(1)}
+- tp1_gain_pct: ${((parseFloat(tp1) - currentPrice) / currentPrice * 100).toFixed(1)}
+- tp2_gain_pct: ${((parseFloat(tp2) - currentPrice) / currentPrice * 100).toFixed(1)}
 
-Return ONLY a raw JSON object. No markdown. No code fences. No explanation. Every field must have a REAL calculated value — never use placeholder numbers:
+YOUR JOB — generate these values based on your analysis of the news and price action above:
+- verdict: is this BUY NOW, WAIT FOR DIP, or AVOID right now? Be decisive.
+- confidence: integer 0-100 — how confident are YOU in this specific setup today?
+- probability: integer 0-100 — what is the realistic success probability for this trade?
+- hold_min_days: integer — minimum days to hold based on the catalyst timeline
+- hold_max_days: integer — maximum days to hold based on the catalyst timeline
+- primary_catalyst: ONE specific sentence referencing actual news above — the #1 reason to enter
+- timing: ONE specific sentence explaining why TODAY is the right entry based on today's price action
+- earnings_date: when is the next earnings? format DD MMM YYYY or Unknown
+- earnings_risk: HIGH, MEDIUM, LOW, or NONE
+- exit_trigger_1: specific price level or condition e.g. "Close below $${stopLoss} on volume"
+- exit_trigger_2: second specific exit condition with price reference
+- exit_trigger_3: third specific exit condition with price reference
+- risk_1: specific risk that could invalidate this trade for ${ticker} right now
+- risk_2: secondary specific risk for ${ticker}
+- sector_note: one specific sentence on ${industry} sector current conditions
+- analyst_target: your best estimate of Wall St consensus 12-month price target
+- risk_reward: calculate from the pre-calculated levels above
 
-{
-  "ticker": "${ticker}",
-  "company": "${companyName}",
-  "current_price": ${currentPrice},
-  "verdict": "one of: BUY NOW or WAIT FOR DIP or AVOID",
-  "entry_low": calculated as 1-2% below current price if in pullback,
-  "entry_high": calculated as 0-1% above current price,
-  "stop_loss": calculated as 5-7% below entry_low,
-  "take_profit_1": calculated as 4-6% above entry_high,
-  "take_profit_2": calculated as 9-13% above entry_high,
-  "risk_reward": "calculated ratio e.g. 2.3:1",
-  "max_loss_pct": calculated percentage loss to stop,
-  "tp1_gain_pct": calculated percentage gain to TP1,
-  "tp2_gain_pct": calculated percentage gain to TP2,
-  "confidence": integer 0-100 based on YOUR assessment of this specific setup,
-  "probability": integer 0-100 based on YOUR assessment of success likelihood,
-  "hold_min_days": integer based on catalyst timeline,
-  "hold_max_days": integer based on catalyst timeline,
-  "primary_catalyst": "specific sentence referencing actual news headline above",
-  "timing": "specific sentence explaining why TODAY specifically is the right entry based on price action",
-  "earnings_date": "DD MMM YYYY or Unknown",
-  "earnings_risk": "one of: HIGH or MEDIUM or LOW or NONE",
-  "exit_trigger_1": "specific price level or condition e.g. close below $XXX",
-  "exit_trigger_2": "specific condition with price reference",
-  "exit_trigger_3": "specific condition with price reference",
-  "risk_1": "specific risk referencing this stock's actual situation",
-  "risk_2": "specific secondary risk for this stock",
-  "sector_note": "specific current observation about ${industry} sector",
-  "analyst_target": your estimate of Wall St consensus target price,
-  "data_date": "${new Date().toLocaleDateString("en-AU", { month: "long", year: "numeric" })}"
-}`;
+Return ONLY a raw JSON object. No markdown. No code fences. No explanation. No preamble:
+{"ticker":"${ticker}","company":"${companyName}","current_price":${currentPrice},"verdict":"YOUR_VERDICT","entry_low":${entryLow},"entry_high":${entryHigh},"stop_loss":${stopLoss},"take_profit_1":${tp1},"take_profit_2":${tp2},"risk_reward":"YOUR_CALC","max_loss_pct":${((currentPrice - parseFloat(stopLoss)) / currentPrice * 100).toFixed(1)},"tp1_gain_pct":${((parseFloat(tp1) - currentPrice) / currentPrice * 100).toFixed(1)},"tp2_gain_pct":${((parseFloat(tp2) - currentPrice) / currentPrice * 100).toFixed(1)},"confidence":YOUR_INT,"probability":YOUR_INT,"hold_min_days":YOUR_INT,"hold_max_days":YOUR_INT,"primary_catalyst":"YOUR_SPECIFIC_SENTENCE","timing":"YOUR_SPECIFIC_SENTENCE","earnings_date":"YOUR_DATE","earnings_risk":"YOUR_LEVEL","exit_trigger_1":"YOUR_SPECIFIC_CONDITION","exit_trigger_2":"YOUR_SPECIFIC_CONDITION","exit_trigger_3":"YOUR_SPECIFIC_CONDITION","risk_1":"YOUR_SPECIFIC_RISK","risk_2":"YOUR_SPECIFIC_RISK","sector_note":"YOUR_SPECIFIC_SENTENCE","analyst_target":YOUR_NUMBER,"data_date":"${dataDate}"}`;
 
     const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
@@ -122,7 +118,7 @@ Return ONLY a raw JSON object. No markdown. No code fences. No explanation. Ever
         model: "llama-3.3-70b-versatile",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt }
+          { role: "user", content: userPrompt },
         ],
         temperature: 0.3,
         max_tokens: 2000,
@@ -139,12 +135,17 @@ Return ONLY a raw JSON object. No markdown. No code fences. No explanation. Ever
 
     const parsed = JSON.parse(match[0]);
 
-    // Always force real Finnhub data
+    // Always lock real Finnhub price and pre-calculated levels
     parsed.current_price = currentPrice;
     parsed.company = companyName;
     parsed.ticker = ticker;
+    parsed.entry_low = parseFloat(entryLow);
+    parsed.entry_high = parseFloat(entryHigh);
+    parsed.stop_loss = parseFloat(stopLoss);
+    parsed.take_profit_1 = parseFloat(tp1);
+    parsed.take_profit_2 = parseFloat(tp2);
 
-    console.log("Success:", parsed.ticker, parsed.current_price, parsed.verdict, "Conf:", parsed.confidence);
+    console.log("Success:", parsed.ticker, parsed.current_price, parsed.verdict, "Conf:", parsed.confidence, "Prob:", parsed.probability);
     res.setHeader("Access-Control-Allow-Origin", "*");
     return res.status(200).json({ parsed });
 
