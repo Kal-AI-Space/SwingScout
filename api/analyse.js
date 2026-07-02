@@ -43,70 +43,56 @@ export default async function handler(req, res) {
     const today = new Date().toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" });
     const dataDate = new Date().toLocaleDateString("en-AU", { month: "long", year: "numeric" });
 
-    const entryLow = (currentPrice * 0.98).toFixed(2);
-    const entryHigh = (currentPrice * 1.005).toFixed(2);
-    const stopLoss = (currentPrice * 0.935).toFixed(2);
-    const tp1 = (currentPrice * 1.055).toFixed(2);
-    const tp2 = (currentPrice * 1.11).toFixed(2);
+    // Pre-calculate all price levels in JS — never let Groq touch these
+    const entryLow = parseFloat((currentPrice * 0.98).toFixed(2));
+    const entryHigh = parseFloat((currentPrice * 1.005).toFixed(2));
+    const stopLoss = parseFloat((currentPrice * 0.935).toFixed(2));
+    const tp1 = parseFloat((currentPrice * 1.055).toFixed(2));
+    const tp2 = parseFloat((currentPrice * 1.11).toFixed(2));
+    const maxLossPct = parseFloat(((currentPrice - stopLoss) / currentPrice * 100).toFixed(1));
+    const tp1GainPct = parseFloat(((tp1 - currentPrice) / currentPrice * 100).toFixed(1));
+    const tp2GainPct = parseFloat(((tp2 - currentPrice) / currentPrice * 100).toFixed(1));
+    const rr = (tp1GainPct / maxLossPct).toFixed(1);
 
-    const systemPrompt = `You are an elite swing trader analyst for US equities. Your client is a retail swing trader who:
+    const systemPrompt = `You are an elite swing trader analyst for US equities. Your client:
 - Buys quality stocks on confirmed pullbacks, holds 1–4 weeks
-- Cash only — no leverage or margin
-- Targets 3–8% gains per trade with a hard 7% stop loss on ALL positions
-- Prefers large-cap AI and technology (Mag 7, semiconductors, AI software)
-- Loses money on meme stocks and FOMO buys — never recommend these
-- Account size ~$5,000–7,000 USD
+- Cash only, no leverage, hard 7% stop loss on ALL positions
+- Targets 3–8% gains, account size $5,000–7,000 USD
+- Prefers Mag 7, semiconductors, AI software
+- Never meme stocks or FOMO buys
 
-Strategy: buy quality on confirmed pullbacks with a clear catalyst, defined risk, realistic target.
-Be specific, opinionated and sharp. Reference actual news and actual price levels in your reasoning.
-Never use generic placeholder text. Every sentence must be specific to this stock right now.`;
+Be specific and opinionated. Reference actual news headlines in your reasoning. Never use generic filler text.`;
 
-    const userPrompt = `Today is ${today}. Analyse ${ticker} for a swing trade.
+    const userPrompt = `Analyse ${ticker} (${companyName}) for a swing trade. Today is ${today}.
 
-LIVE MARKET DATA:
-- Company: ${companyName}
-- Industry: ${industry}
-- Market Cap: ${marketCap}
-- Current Price: $${currentPrice}
-- Today High: $${highDay}
-- Today Low: $${lowDay}
-- Previous Close: $${prevClose}
-- Change Today: ${changePercent}%
+LIVE DATA:
+Price: $${currentPrice} | High: $${highDay} | Low: $${lowDay} | Prev Close: $${prevClose} | Change: ${changePercent}%
+Market Cap: ${marketCap} | Industry: ${industry}
 
-RECENT NEWS (last 7 days):
+NEWS LAST 7 DAYS:
 ${recentHeadlines}
 
-PRE-CALCULATED LEVELS (use these exact numbers):
-- entry_low: ${entryLow}
-- entry_high: ${entryHigh}
-- stop_loss: ${stopLoss}
-- take_profit_1: ${tp1}
-- take_profit_2: ${tp2}
-- max_loss_pct: ${((currentPrice - parseFloat(stopLoss)) / currentPrice * 100).toFixed(1)}
-- tp1_gain_pct: ${((parseFloat(tp1) - currentPrice) / currentPrice * 100).toFixed(1)}
-- tp2_gain_pct: ${((parseFloat(tp2) - currentPrice) / currentPrice * 100).toFixed(1)}
+Answer these questions with a SINGLE short answer each. Be decisive and specific:
 
-YOUR JOB — generate these values based on your analysis of the news and price action above:
-- verdict: is this BUY NOW, WAIT FOR DIP, or AVOID right now? Be decisive.
-- confidence: integer 0-100 — how confident are YOU in this specific setup today?
-- probability: integer 0-100 — what is the realistic success probability for this trade?
-- hold_min_days: integer — minimum days to hold based on the catalyst timeline
-- hold_max_days: integer — maximum days to hold based on the catalyst timeline
-- primary_catalyst: ONE specific sentence referencing actual news above — the #1 reason to enter
-- timing: ONE specific sentence explaining why TODAY is the right entry based on today's price action
-- earnings_date: when is the next earnings? format DD MMM YYYY or Unknown
-- earnings_risk: HIGH, MEDIUM, LOW, or NONE
-- exit_trigger_1: specific price level or condition e.g. "Close below $${stopLoss} on volume"
-- exit_trigger_2: second specific exit condition with price reference
-- exit_trigger_3: third specific exit condition with price reference
-- risk_1: specific risk that could invalidate this trade for ${ticker} right now
-- risk_2: secondary specific risk for ${ticker}
-- sector_note: one specific sentence on ${industry} sector current conditions
-- analyst_target: your best estimate of Wall St consensus 12-month price target
-- risk_reward: calculate from the pre-calculated levels above
+Q1. VERDICT: Should we BUY NOW, WAIT FOR DIP, or AVOID? (pick one)
+Q2. CONFIDENCE: Rate your confidence in this setup 0-100. Consider: strong news=higher, weak setup=lower, uncertain macro=lower.
+Q3. PROBABILITY: What is the realistic probability of hitting TP1? 0-100. Be honest, not optimistic.
+Q4. HOLD_MIN: Minimum days to hold based on the catalyst. Integer only.
+Q5. HOLD_MAX: Maximum days to hold. Integer only.
+Q6. CATALYST: One specific sentence — the #1 reason to enter RIGHT NOW. Must reference a specific news headline above.
+Q7. TIMING: One specific sentence — why is TODAY the right entry day based on price action?
+Q8. EARNINGS_DATE: Next earnings date in format DD MMM YYYY. If unknown say Unknown.
+Q9. EARNINGS_RISK: Rate earnings risk as HIGH, MEDIUM, LOW, or NONE.
+Q10. EXIT1: Specific exit condition with a price level e.g. "Close below $X for two consecutive days"
+Q11. EXIT2: Second specific exit condition with price reference.
+Q12. EXIT3: Third specific exit condition.
+Q13. RISK1: The #1 specific risk that could kill this trade right now.
+Q14. RISK2: Second specific risk.
+Q15. SECTOR: One sentence on current ${industry} sector conditions.
+Q16. ANALYST_TARGET: Your best estimate of Wall St 12-month consensus target price. Number only.
 
-Return ONLY a raw JSON object. No markdown. No code fences. No explanation. No preamble:
-{"ticker":"${ticker}","company":"${companyName}","current_price":${currentPrice},"verdict":"YOUR_VERDICT","entry_low":${entryLow},"entry_high":${entryHigh},"stop_loss":${stopLoss},"take_profit_1":${tp1},"take_profit_2":${tp2},"risk_reward":"YOUR_CALC","max_loss_pct":${((currentPrice - parseFloat(stopLoss)) / currentPrice * 100).toFixed(1)},"tp1_gain_pct":${((parseFloat(tp1) - currentPrice) / currentPrice * 100).toFixed(1)},"tp2_gain_pct":${((parseFloat(tp2) - currentPrice) / currentPrice * 100).toFixed(1)},"confidence":YOUR_INT,"probability":YOUR_INT,"hold_min_days":YOUR_INT,"hold_max_days":YOUR_INT,"primary_catalyst":"YOUR_SPECIFIC_SENTENCE","timing":"YOUR_SPECIFIC_SENTENCE","earnings_date":"YOUR_DATE","earnings_risk":"YOUR_LEVEL","exit_trigger_1":"YOUR_SPECIFIC_CONDITION","exit_trigger_2":"YOUR_SPECIFIC_CONDITION","exit_trigger_3":"YOUR_SPECIFIC_CONDITION","risk_1":"YOUR_SPECIFIC_RISK","risk_2":"YOUR_SPECIFIC_RISK","sector_note":"YOUR_SPECIFIC_SENTENCE","analyst_target":YOUR_NUMBER,"data_date":"${dataDate}"}`;
+Then return ONLY this JSON using your answers above — no markdown, no explanation:
+{"ticker":"${ticker}","company":"${companyName}","current_price":${currentPrice},"verdict":"A1","entry_low":${entryLow},"entry_high":${entryHigh},"stop_loss":${stopLoss},"take_profit_1":${tp1},"take_profit_2":${tp2},"risk_reward":"${rr}:1","max_loss_pct":${maxLossPct},"tp1_gain_pct":${tp1GainPct},"tp2_gain_pct":${tp2GainPct},"confidence":A2,"probability":A3,"hold_min_days":A4,"hold_max_days":A5,"primary_catalyst":"A6","timing":"A7","earnings_date":"A8","earnings_risk":"A9","exit_trigger_1":"A10","exit_trigger_2":"A11","exit_trigger_3":"A12","risk_1":"A13","risk_2":"A14","sector_note":"A15","analyst_target":A16,"data_date":"${dataDate}"}`;
 
     const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
@@ -120,32 +106,36 @@ Return ONLY a raw JSON object. No markdown. No code fences. No explanation. No p
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        temperature: 0.3,
+        temperature: 0.4,
         max_tokens: 2000,
       }),
     });
 
     const groqData = await groqRes.json();
     const raw = groqData?.choices?.[0]?.message?.content || "";
-    console.log("Groq raw:", raw.slice(0, 600));
+    console.log("Groq raw:", raw.slice(0, 800));
 
     const clean = raw.replace(/```json/gi, "").replace(/```/g, "").trim();
     const match = clean.match(/\{[\s\S]*\}/);
-    if (!match) return res.status(200).json({ parsed: null, error: "No JSON in response", raw: clean.slice(0, 300) });
+    if (!match) return res.status(200).json({ parsed: null, error: "No JSON found", raw: clean.slice(0, 300) });
 
     const parsed = JSON.parse(match[0]);
 
-    // Always lock real Finnhub price and pre-calculated levels
+    // Hard lock all price levels — Groq cannot change these
     parsed.current_price = currentPrice;
     parsed.company = companyName;
     parsed.ticker = ticker;
-    parsed.entry_low = parseFloat(entryLow);
-    parsed.entry_high = parseFloat(entryHigh);
-    parsed.stop_loss = parseFloat(stopLoss);
-    parsed.take_profit_1 = parseFloat(tp1);
-    parsed.take_profit_2 = parseFloat(tp2);
+    parsed.entry_low = entryLow;
+    parsed.entry_high = entryHigh;
+    parsed.stop_loss = stopLoss;
+    parsed.take_profit_1 = tp1;
+    parsed.take_profit_2 = tp2;
+    parsed.max_loss_pct = maxLossPct;
+    parsed.tp1_gain_pct = tp1GainPct;
+    parsed.tp2_gain_pct = tp2GainPct;
+    parsed.risk_reward = `${rr}:1`;
 
-    console.log("Success:", parsed.ticker, parsed.current_price, parsed.verdict, "Conf:", parsed.confidence, "Prob:", parsed.probability);
+    console.log("Success:", parsed.ticker, parsed.current_price, parsed.verdict, "Conf:", parsed.confidence, "Prob:", parsed.probability, "Hold:", parsed.hold_min_days, "-", parsed.hold_max_days);
     res.setHeader("Access-Control-Allow-Origin", "*");
     return res.status(200).json({ parsed });
 
