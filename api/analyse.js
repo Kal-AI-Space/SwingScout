@@ -9,7 +9,6 @@ export default async function handler(req, res) {
   const groqKey = process.env.GROQ_API_KEY;
 
   try {
-    // Step 1: Fetch real live price from Finnhub
     const [quoteRes, profileRes, newsRes] = await Promise.all([
       fetch(`https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${finnhubKey}`),
       fetch(`https://finnhub.io/api/v1/stock/profile2?symbol=${ticker}&token=${finnhubKey}`),
@@ -32,14 +31,12 @@ export default async function handler(req, res) {
     const marketCap = profile.marketCapitalization ? `$${(profile.marketCapitalization / 1000).toFixed(1)}B` : "Unknown";
 
     if (!currentPrice || currentPrice === 0) {
-      return res.status(200).json({ parsed: null, error: "Invalid ticker or market is closed. Try again during market hours." });
+      return res.status(200).json({ parsed: null, error: "Invalid ticker or market is closed." });
     }
 
-    const recentHeadlines = Array.isArray(news)
+    const recentHeadlines = Array.isArray(news) && news.length > 0
       ? news.slice(0, 7).map(n => `- ${n.headline}`).join("\n")
-      : "No recent news available";
-
-    console.log(`${ticker} | Price: ${currentPrice} | Company: ${companyName}`);
+      : "No recent news found";
 
     const today = new Date().toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" });
 
@@ -52,76 +49,68 @@ export default async function handler(req, res) {
 - Account size ~$5,000–7,000 USD
 - Applies Islamic finance screening — avoids companies with excessive debt (debt/equity > 33%), interest-based revenue, or haram business activities
 
-Strategy: buy quality on confirmed pullbacks with a clear catalyst, defined risk, realistic target. Be specific, opinionated, and sharp. Never give generic advice.`;
+Strategy: buy quality on confirmed pullbacks with a clear catalyst, defined risk, realistic target.
+You must be specific, opinionated, and sharp. Reference actual news, actual price levels, actual catalysts.
+NEVER use generic placeholder text. NEVER copy example values. ALWAYS calculate real numbers based on the live price provided.`;
 
-    const userPrompt = `Today is ${today}. Analyse ${ticker} for a swing trade.
+    const userPrompt = `Today is ${today}. Analyse ${ticker} for a swing trade opportunity.
 
-LIVE MARKET DATA (from Finnhub — use these exact figures):
+LIVE MARKET DATA:
 - Company: ${companyName}
 - Industry: ${industry}
 - Market Cap: ${marketCap}
 - Current Price: $${currentPrice}
-- Today's High: $${highDay}
-- Today's Low: $${lowDay}  
+- Today High: $${highDay}
+- Today Low: $${lowDay}
 - Previous Close: $${prevClose}
 - Change Today: ${changePercent}%
 
-RECENT NEWS (last 7 days):
+RECENT NEWS HEADLINES (last 7 days):
 ${recentHeadlines}
 
-Using this real data, provide a sharp, specific swing trade analysis. Consider:
-1. Is the stock in a confirmed pullback or at resistance?
-2. What is the technical setup based on today's price action?
-3. What recent news is the primary catalyst?
-4. Is this halal-compliant for an Islamic finance screened portfolio?
-5. What are the specific entry, stop, and target levels?
+INSTRUCTIONS:
+1. Assess the technical setup — is this stock in a pullback, at support, breaking out, or at resistance?
+2. Identify the single strongest catalyst from the news above
+3. Calculate precise entry, stop, and target levels based on the REAL current price of $${currentPrice}
+4. Give a REAL confidence score based on how strong the setup is (not a default number)
+5. Give a REAL probability based on market conditions (not a default number)
+6. Give a REAL hold period based on the catalyst timeline
+7. Write specific exit triggers referencing actual price levels
+8. Check halal compliance — flag if debt-heavy or interest-based business
 
-Respond ONLY with raw valid JSON — no markdown fences, no explanation, nothing before or after:
+Return ONLY a raw JSON object. No markdown. No code fences. No explanation. Every field must have a REAL calculated value — never use placeholder numbers:
+
 {
   "ticker": "${ticker}",
   "company": "${companyName}",
   "current_price": ${currentPrice},
-  "verdict": "BUY NOW",
-  "entry_low": 0.00,
-  "entry_high": 0.00,
-  "stop_loss": 0.00,
-  "take_profit_1": 0.00,
-  "take_profit_2": 0.00,
-  "risk_reward": "2.1:1",
-  "max_loss_pct": 0.0,
-  "tp1_gain_pct": 0.0,
-  "tp2_gain_pct": 0.0,
-  "confidence": 72,
-  "probability": 65,
-  "hold_min_days": 7,
-  "hold_max_days": 21,
-  "primary_catalyst": "Single specific sentence — the #1 reason to enter based on real news above",
-  "timing": "Single specific sentence — why entry timing is right TODAY based on price action",
+  "verdict": "one of: BUY NOW or WAIT FOR DIP or AVOID",
+  "entry_low": calculated as 1-2% below current price if in pullback,
+  "entry_high": calculated as 0-1% above current price,
+  "stop_loss": calculated as 5-7% below entry_low,
+  "take_profit_1": calculated as 4-6% above entry_high,
+  "take_profit_2": calculated as 9-13% above entry_high,
+  "risk_reward": "calculated ratio e.g. 2.3:1",
+  "max_loss_pct": calculated percentage loss to stop,
+  "tp1_gain_pct": calculated percentage gain to TP1,
+  "tp2_gain_pct": calculated percentage gain to TP2,
+  "confidence": integer 0-100 based on YOUR assessment of this specific setup,
+  "probability": integer 0-100 based on YOUR assessment of success likelihood,
+  "hold_min_days": integer based on catalyst timeline,
+  "hold_max_days": integer based on catalyst timeline,
+  "primary_catalyst": "specific sentence referencing actual news headline above",
+  "timing": "specific sentence explaining why TODAY specifically is the right entry based on price action",
   "earnings_date": "DD MMM YYYY or Unknown",
-  "earnings_risk": "HIGH",
-  "exit_trigger_1": "Specific measurable condition that means exit immediately",
-  "exit_trigger_2": "Second specific exit condition",
-  "exit_trigger_3": "Third specific exit condition",
-  "risk_1": "Primary specific risk that could invalidate this trade",
-  "risk_2": "Secondary specific risk factor",
-  "sector_note": "One specific sentence on current sector or macro backdrop",
-  "analyst_target": 0.00,
+  "earnings_risk": "one of: HIGH or MEDIUM or LOW or NONE",
+  "exit_trigger_1": "specific price level or condition e.g. close below $XXX",
+  "exit_trigger_2": "specific condition with price reference",
+  "exit_trigger_3": "specific condition with price reference",
+  "risk_1": "specific risk referencing this stock's actual situation",
+  "risk_2": "specific secondary risk for this stock",
+  "sector_note": "specific current observation about ${industry} sector",
+  "analyst_target": your estimate of Wall St consensus target price,
   "data_date": "${new Date().toLocaleDateString("en-AU", { month: "long", year: "numeric" })}"
-}
-
-Rules:
-- current_price MUST be exactly ${currentPrice} — never change this
-- entry_low and entry_high must be within 3% of ${currentPrice}
-- stop_loss must be 5-7% below entry_low
-- take_profit_1 must be 4-6% above entry_high  
-- take_profit_2 must be 8-14% above entry_high
-- verdict must be exactly: BUY NOW, WAIT FOR DIP, or AVOID
-- earnings_risk must be exactly: HIGH, MEDIUM, LOW, or NONE
-- confidence and probability are integers 0-100
-- Never recommend meme stocks, penny stocks, or crypto-only plays
-- If stock is near all-time highs with no pullback, use WAIT FOR DIP
-- If fundamentals are broken or haram business, use AVOID
-- Be specific — reference actual news headlines, actual price levels, actual catalysts`;
+}`;
 
     const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
@@ -135,29 +124,27 @@ Rules:
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
         ],
-        temperature: 0.2,
-        max_tokens: 1500,
+        temperature: 0.3,
+        max_tokens: 2000,
       }),
     });
 
     const groqData = await groqRes.json();
-    console.log("Groq status:", groqRes.status);
-
     const raw = groqData?.choices?.[0]?.message?.content || "";
-    console.log("Groq raw:", raw.slice(0, 500));
+    console.log("Groq raw:", raw.slice(0, 600));
 
     const clean = raw.replace(/```json/gi, "").replace(/```/g, "").trim();
     const match = clean.match(/\{[\s\S]*\}/);
-    if (!match) return res.status(200).json({ parsed: null, error: "No JSON in response", raw: clean.slice(0, 200) });
+    if (!match) return res.status(200).json({ parsed: null, error: "No JSON in response", raw: clean.slice(0, 300) });
 
     const parsed = JSON.parse(match[0]);
 
-    // Always force real Finnhub data — never trust LLM for price/company
+    // Always force real Finnhub data
     parsed.current_price = currentPrice;
     parsed.company = companyName;
     parsed.ticker = ticker;
 
-    console.log("Success:", parsed.ticker, parsed.current_price, parsed.verdict);
+    console.log("Success:", parsed.ticker, parsed.current_price, parsed.verdict, "Conf:", parsed.confidence);
     res.setHeader("Access-Control-Allow-Origin", "*");
     return res.status(200).json({ parsed });
 
